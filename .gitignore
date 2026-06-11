@@ -1,0 +1,15 @@
+# PDF files — generated locally, no need to commit
+*.pdf
+
+# Logs
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# NOTE: config.json IS committed but has no real secrets
+# Real secrets are in GitHub Secrets → env vars

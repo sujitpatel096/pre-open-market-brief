@@ -1,0 +1,126 @@
+name: Market Brief Pipeline
+
+on:
+  schedule:
+    # ---------------------------------------------------------
+    # IST = UTC + 5:30
+    # 3:15 PM IST  = 09:45 UTC
+    # 8:45 AM IST  = 03:15 UTC (next day)
+    # 8:46 AM IST  = 03:16 UTC (next day)  <- SEND job
+    #
+    # GitHub Actions minimum cron interval = 5 minutes
+    # ---------------------------------------------------------
+
+    # SCRAPE: 9:45 UTC to 23:55 UTC  (3:15 PM to 5:25 AM IST)  Mon-Fri
+    - cron: "*/5 9-23 * * 1-5"
+
+    # SCRAPE: 0:00 UTC to 3:10 UTC   (5:30 AM to 8:40 AM IST)  Tue-Sat
+    - cron: "*/5 0-3 * * 2-6"
+
+    # SEND: 3:16 UTC = 8:46 AM IST   Tue-Sat
+    - cron: "16 3 * * 2-6"
+
+  # Manual trigger - run from GitHub Actions UI for testing
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to run"
+        required: true
+        default: "scrape"
+        type: choice
+        options:
+          - scrape
+          - send
+
+permissions:
+  contents: write   # needed to commit news.json back to repo
+
+jobs:
+
+  # -- JOB 1: SCRAPE (runs every 5 min) --------------------
+  scrape:
+    name: Scrape ScanX
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'schedule' && github.event.schedule != '16 3 * * 2-6')
+      || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'scrape')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('requirements.txt') }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Run scraper
+        run: python scrape.py
+        env:
+          # Secrets are injected here from GitHub Secrets - never hardcoded in code
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Commit updated news.json to repo
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add news.json
+          git diff --staged --quiet || git commit -m "scrape: $(date -u +'%H:%M UTC')"
+          git push
+
+  # -- JOB 2: SEND PDF (runs at 8:46 AM IST) ---------------
+  send:
+    name: Send PDF to Telegram
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'schedule' && github.event.schedule == '16 3 * * 2-6')
+      || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'send')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('requirements.txt') }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate PDF and send to Telegram
+        run: python send_pdf.py
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Commit reset news.json to repo
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add news.json
+          git diff --staged --quiet || git commit -m "reset: $(date -u +'%Y-%m-%d')"
+          git push

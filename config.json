@@ -1,0 +1,31 @@
+{
+  "telegram": {
+    "bot_token": "YOUR_BOT_TOKEN_HERE",
+    "chat_id": "YOUR_NUMERIC_CHAT_ID_HERE"
+  },
+
+  "schedule": {
+    "start_hour": 15,
+    "start_minute": 15,
+    "end_hour": 8,
+    "end_minute": 45,
+    "send_hour": 8,
+    "send_minute": 46
+  },
+
+  "scraper": {
+    "pages": [
+      {"url": "https://scanx.trade/stock-market-news/latest-news",      "source": "latest"},
+      {"url": "https://scanx.trade/stock-market-news/markets",           "source": "markets"},
+      {"url": "https://scanx.trade/stock-market-news/stocks",            "source": "stocks"},
+      {"url": "https://scanx.trade/stock-market-news/corporate-actions", "source": "corporate"},
+      {"url": "https://scanx.trade/stock-market-news/orders-deals",      "source": "orders"},
+      {"url": "https://scanx.trade/stock-market-news/global",            "source": "global"},
+      {"url": "https://scanx.trade/stock-market-news/commodities",       "source": "commodities"}
+    ]
+  },
+
+  "files": {
+    "news_store": "news.json"
+  }
+}
