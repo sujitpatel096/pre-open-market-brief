@@ -12,10 +12,10 @@ on:
     # ---------------------------------------------------------
 
     # SCRAPE: 9:45 UTC to 23:55 UTC  (3:15 PM to 5:25 AM IST)  Mon-Fri
-    - cron: "*/5 9-23 * * 1-5"
+    - cron: "*/15 9-23 * * 1-5"
 
     # SCRAPE: 0:00 UTC to 3:10 UTC   (5:30 AM to 8:40 AM IST)  Tue-Sat
-    - cron: "*/5 0-3 * * 2-6"
+    - cron: "*/15 0-3 * * 2-6"
 
     # SEND: 3:16 UTC = 8:46 AM IST   Tue-Sat
     - cron: "16 3 * * 2-6"
